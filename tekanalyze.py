@@ -1,9 +1,11 @@
 #! /usr/bin/env python
-
+import sqlite3
 import sys
 import argparse
 import Exposure_Key_Format_pb2
+from pathlib import Path
 from datetime import datetime
+import binascii
 
 
 class TekAnalyze:
@@ -11,6 +13,7 @@ class TekAnalyze:
         parser = argparse.ArgumentParser()
         parser.add_argument("--url", help="Help from which the app will download the TEKs")
         parser.add_argument("--tekfile", help="File to analyze (disables download)")
+        parser.add_argument("--db", help="Export keys to sqlite3 database")
         self.args = parser.parse_args()
 
     def run(self):
@@ -35,25 +38,43 @@ class TekAnalyze:
         print("End Timestamp: {0} {1}".format(tekExport.end_timestamp,datetime.fromtimestamp(tekExport.end_timestamp)))
         print("Number of Keys: {0}".format(len(tekExport.keys)))
 
+        if self.args.db:
+            newfile = not Path(self.args.db).is_file()
+            self.db = sqlite3.connect(self.args.db)
+            if newfile:
+                with open("tekanalyzer.schema", mode="r") as file:
+                    ddl = file.read()
+                self.db.executescript(ddl)
+
+            curs = self.db.cursor()
+            sql = "INSERT INTO batches(country, batchnum, batchsize, from_timestamp, to_timestamp) VALUES(?,?, ?,?,?)"
+            curs.execute(sql, ("IT", tekExport.batch_num, tekExport.batch_size, tekExport.start_timestamp, tekExport.end_timestamp))
+            packid=curs.lastrowid
+            self.db.commit()
+
         for key in tekExport.keys:
-            keydata = key.key_data
-            start = datetime.fromtimestamp(key.rolling_start_interval_number * 10 * 60 )
+            keydata = binascii.hexlify(key.key_data)
+            startts = datetime.fromtimestamp(key.rolling_start_interval_number * 10 * 60 )
+            endts = datetime.fromtimestamp((key.rolling_start_interval_number + key.rolling_period)* 10 * 60 )
             if  hasattr(key,"report_type" ):
                 report_type = key.report_type
             else:
-                report_type = "N/A"
+                report_type = None
 
             if  hasattr(key,"days_since_onset_of_symptoms" ):
                 onset_days = key.days_since_onset_of_symptoms
             else:
-                onset_days = "N/A"
+                onset_days = None
 
+            if self.db:
+                curs = self.db.cursor()
+                sql = "INSERT INTO keys(key, country, batch, start_rp, end_rp, start_timestamp, end_timestamp, report_type, days) " \
+                      "VALUES (?,?,?,?,?,?,?,?,?)"
+                curs.execute(sql, (keydata, "IT", packid, key.rolling_start_interval_number, key.rolling_period,
+                                   startts, endts, report_type, onset_days))
 
-            print("Key: {0} Start: {3} Risk Level: {1} Report: {2} Days: {4}".format(
-                keydata,
-                key.transmission_risk_level,
-                report_type,
-            start, onset_days))
+        if self.db:
+            self.db.commit()
 
         return 0
 
