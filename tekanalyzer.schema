@@ -3,7 +3,8 @@ create table batches
 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 	country TEXT not null,
-	batchnum int UNIQUE NOT NULL,
+	batchid int UNIQUE NOT NULL,
+	batchnum int,
 	batchsize int,
 	from_timestamp int not null,
 	to_timestamp int not null
@@ -25,7 +26,7 @@ create table keys
 	report_type int,
 	days int,
 	constraint keys_batches_batchnum_country_fk
-		foreign key (batch, country) references batches (batchnum, country)
+		foreign key (batch, country) references batches (batchid, country)
 			on update cascade on delete cascade
 );
 

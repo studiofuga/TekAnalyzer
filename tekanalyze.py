@@ -11,9 +11,9 @@ import binascii
 class TekAnalyze:
     def __init__(self, argv):
         parser = argparse.ArgumentParser()
-        parser.add_argument("--url", help="Help from which the app will download the TEKs")
         parser.add_argument("--tekfile", help="File to analyze (disables download)")
         parser.add_argument("--db", help="Export keys to sqlite3 database")
+        parser.add_argument("--batch", help="Number of the imported batch")
         self.args = parser.parse_args()
 
     def run(self):
@@ -32,6 +32,7 @@ class TekAnalyze:
         tekExport = Exposure_Key_Format_pb2.TemporaryExposureKeyExport()
         tekExport.ParseFromString(text[16:])
         print("Region: {0}".format(tekExport.region))
+        print("Chunk/Batch number: {0}".format(self.args.batch))
         print("Batch Num: {0}".format(tekExport.batch_num))
         print("Batch Size: {0}".format(tekExport.batch_size))
         print("Start Timestamp: {0} {1}".format(tekExport.start_timestamp,datetime.fromtimestamp(tekExport.start_timestamp)))
@@ -39,6 +40,10 @@ class TekAnalyze:
         print("Number of Keys: {0}".format(len(tekExport.keys)))
 
         if self.args.db:
+            if self.args.batch is None:
+                print("No batch id provided. Use --batch to specify one.")
+                exit(2)
+
             newfile = not Path(self.args.db).is_file()
             self.db = sqlite3.connect(self.args.db)
             if newfile:
@@ -46,11 +51,7 @@ class TekAnalyze:
                     ddl = file.read()
                 self.db.executescript(ddl)
 
-            curs = self.db.cursor()
-            sql = "INSERT INTO batches(country, batchnum, batchsize, from_timestamp, to_timestamp) VALUES(?,?, ?,?,?)"
-            curs.execute(sql, ("IT", tekExport.batch_num, tekExport.batch_size, tekExport.start_timestamp, tekExport.end_timestamp))
-            packid=curs.lastrowid
-            self.db.commit()
+            packid = self._import_batch(tekExport)
 
         for key in tekExport.keys:
             keydata = binascii.hexlify(key.key_data)
@@ -67,16 +68,28 @@ class TekAnalyze:
                 onset_days = None
 
             if self.db:
-                curs = self.db.cursor()
-                sql = "INSERT INTO keys(key, country, batch, start_rp, end_rp, start_timestamp, end_timestamp, report_type, days) " \
-                      "VALUES (?,?,?,?,?,?,?,?,?)"
-                curs.execute(sql, (keydata, "IT", packid, key.rolling_start_interval_number, key.rolling_period,
-                                   startts, endts, report_type, onset_days))
+                self._import_key(endts, key, keydata, onset_days, packid, report_type, startts)
 
         if self.db:
             self.db.commit()
 
         return 0
+
+    def _import_key(self, endts, key, keydata, onset_days, packid, report_type, startts):
+        curs = self.db.cursor()
+        sql = "INSERT INTO keys(key, country, batch, start_rp, end_rp, start_timestamp, end_timestamp, report_type, days) " \
+              "VALUES (?,?,?,?,?,?,?,?,?)"
+        curs.execute(sql, (keydata, "IT", packid, key.rolling_start_interval_number, key.rolling_period,
+                           startts, endts, report_type, onset_days))
+
+    def _import_batch(self, tekExport):
+        curs = self.db.cursor()
+        sql = "INSERT INTO batches(country, batchid, batchnum, batchsize, from_timestamp, to_timestamp) VALUES(?,?,?, ?,?,?)"
+        curs.execute(sql, ("IT", self.args.batch, tekExport.batch_num, tekExport.batch_size, tekExport.start_timestamp,
+                           tekExport.end_timestamp))
+        packid = curs.lastrowid
+        self.db.commit()
+        return packid
 
 
 if __name__== "__main__":
