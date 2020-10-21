@@ -68,24 +68,24 @@ class TekAnalyze:
                 onset_days = None
 
             if self.db:
-                self._import_key(endts, key, keydata, onset_days, packid, report_type, startts)
+                self._import_key(tekExport, endts, key, keydata, onset_days, packid, report_type, startts)
 
         if self.db:
             self.db.commit()
 
         return 0
 
-    def _import_key(self, endts, key, keydata, onset_days, packid, report_type, startts):
+    def _import_key(self, tekExport, endts, key, keydata, onset_days, packid, report_type, startts):
         curs = self.db.cursor()
         sql = "INSERT INTO keys(key, country, batch, start_rp, end_rp, start_timestamp, end_timestamp, report_type, days) " \
               "VALUES (?,?,?,?,?,?,?,?,?)"
-        curs.execute(sql, (keydata, "IT", packid, key.rolling_start_interval_number, key.rolling_period,
+        curs.execute(sql, (keydata, tekExport.region, packid, key.rolling_start_interval_number, key.rolling_period,
                            startts, endts, report_type, onset_days))
 
     def _import_batch(self, tekExport):
         curs = self.db.cursor()
         sql = "INSERT INTO batches(country, batchid, batchnum, batchsize, from_timestamp, to_timestamp, from_unix_timestamp, to_unix_timestamp) VALUES(?,?,?,?,?, ?,?,?)"
-        curs.execute(sql, ("IT", self.args.batch, tekExport.batch_num, tekExport.batch_size,
+        curs.execute(sql, (tekExport.region, self.args.batch, tekExport.batch_num, tekExport.batch_size,
                             datetime.fromtimestamp(tekExport.start_timestamp),
                             datetime.fromtimestamp(tekExport.end_timestamp),
                            tekExport.start_timestamp, tekExport.end_timestamp))
