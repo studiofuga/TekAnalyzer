@@ -84,9 +84,11 @@ class TekAnalyze:
 
     def _import_batch(self, tekExport):
         curs = self.db.cursor()
-        sql = "INSERT INTO batches(country, batchid, batchnum, batchsize, from_timestamp, to_timestamp) VALUES(?,?,?, ?,?,?)"
-        curs.execute(sql, ("IT", self.args.batch, tekExport.batch_num, tekExport.batch_size, tekExport.start_timestamp,
-                           tekExport.end_timestamp))
+        sql = "INSERT INTO batches(country, batchid, batchnum, batchsize, from_timestamp, to_timestamp, from_unix_timestamp, to_unix_timestamp) VALUES(?,?,?,?,?, ?,?,?)"
+        curs.execute(sql, ("IT", self.args.batch, tekExport.batch_num, tekExport.batch_size,
+                            datetime.fromtimestamp(tekExport.start_timestamp),
+                            datetime.fromtimestamp(tekExport.end_timestamp),
+                           tekExport.start_timestamp, tekExport.end_timestamp))
         packid = curs.lastrowid
         self.db.commit()
         return packid

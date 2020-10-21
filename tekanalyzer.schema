@@ -7,7 +7,9 @@ create table batches
 	batchnum int,
 	batchsize int,
 	from_timestamp int not null,
-	to_timestamp int not null
+	to_timestamp int not null,
+	from_unix_timestamp int not null,
+	to_unix_timestamp int not null
 );
 
 create index batches_id_country_from_timestamp_index

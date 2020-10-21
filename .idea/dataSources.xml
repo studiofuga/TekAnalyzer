@@ -1,22 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="tekanalyzer.db" uuid="0872824d-9b10-48f2-b829-cac466d64d61">
+    <data-source source="LOCAL" name="it.db" uuid="39756a7a-dd81-46e9-8d0e-a58506f8c0c1">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/tekanalyzer.db</jdbc-url>
-    </data-source>
-    <data-source source="LOCAL" name="temp" uuid="85c33f01-3de2-4296-bb53-264998529ce1">
-      <driver-ref>sqlite.xerial</driver-ref>
-      <synchronize>true</synchronize>
-      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/temp.db</jdbc-url>
-      <libraries>
-        <library>
-          <url>file://$APPLICATION_CONFIG_DIR$/jdbc-drivers/Xerial SQLiteJDBC/3.31.1/sqlite-jdbc-3.31.1.jar</url>
-        </library>
-      </libraries>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/data/it.db</jdbc-url>
     </data-source>
   </component>
 </project>
