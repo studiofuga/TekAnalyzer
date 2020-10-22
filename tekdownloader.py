@@ -2,14 +2,23 @@
 import argparse
 import json
 from urllib import request, error
+from pathlib import Path
 
 
 class TekDownloader:
     def __init__(self):
+        self.oldnum = None;
+        self.newnum = None;
         pass
 
     def setOutDir(self, outdir):
         self.outdir = outdir
+
+    def setOldNum(self, n):
+        self.oldnum = n
+
+    def setNewNum(self,n):
+        self.newnum =n
 
     def run(self):
         try:
@@ -19,6 +28,28 @@ class TekDownloader:
             indexJson = response.read().decode("utf-8")
             index = json.loads(indexJson)
             print("Available Indexes: {0} to {1}".format(index["oldest"], index["newest"]))
+
+            if self.oldnum is None:
+                self.oldnum = index["oldest"]
+            else:
+                self.oldnum = max (self.oldnum, index["oldest"])
+
+            if self.newnum is None:
+                self.newnum = index["newest"]
+            else:
+                self.newnum = min (self.newnum, index["newest"])
+
+            for batch in range(self.oldnum,self.newnum+1):
+                print("Reading Batch {}".format(batch))
+                req = request.Request(url='https://get.immuni.gov.it/v1/keys/{}'.format(batch), headers=reqHeaders)
+                response = request.urlopen(req)
+                outfile = Path(self.outdir, "{}.zip".format(batch));
+                outf = open(outfile,"wb")
+                outf.write(response.read())
+
+                print("{} bytes read".format(outfile.stat().st_size))
+
+
         except error.URLError as e:
             print("Fail: ", e.reason)
             print(e.read())
@@ -35,5 +66,9 @@ if __name__ == "__main__":
 
     downloader = TekDownloader()
     downloader.setOutDir(args.outdir)
+    if not args.old is None:
+        downloader.setOldNum(int(args.old))
+    if not args.new is None:
+        downloader.setNewNum(int(args.new))
 
     downloader.run()
