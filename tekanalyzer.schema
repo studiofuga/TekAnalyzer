@@ -32,6 +32,9 @@ create table keys
 			on update cascade on delete cascade
 );
 
+create unique index keys_key
+	on keys (key,country);
+
 create index keys_key_report_type_index
 	on keys (key, report_type);
 

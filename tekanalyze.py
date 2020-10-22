@@ -77,7 +77,7 @@ class TekAnalyze:
 
     def _import_key(self, tekExport, endts, key, keydata, onset_days, packid, report_type, startts):
         curs = self.db.cursor()
-        sql = "INSERT INTO keys(key, country, batch, start_rp, end_rp, start_timestamp, end_timestamp, report_type, days) " \
+        sql = "INSERT OR REPLACE INTO keys(key, country, batch, start_rp, end_rp, start_timestamp, end_timestamp, report_type, days) " \
               "VALUES (?,?,?,?,?,?,?,?,?)"
         curs.execute(sql, (keydata, tekExport.region, packid, key.rolling_start_interval_number, key.rolling_period,
                            startts, endts, report_type, onset_days))
