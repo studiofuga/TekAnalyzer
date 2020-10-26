@@ -1,6 +1,9 @@
 #! /usr/bin/env python
 import argparse
 import json
+from zipfile import ZipFile
+
+
 from urllib import request, error
 from pathlib import Path
 
@@ -29,10 +32,13 @@ class TekDownloader:
             index = json.loads(indexJson)
             print("Available Indexes: {0} to {1}".format(index["oldest"], index["newest"]))
 
+            if args.index:
+                exit(0)
+
             if self.oldnum is None:
                 self.oldnum = index["oldest"]
             else:
-                self.oldnum = max (self.oldnum, index["oldest"])
+                self.oldnum = max (self.oldnum+1, index["oldest"])
 
             if self.newnum is None:
                 self.newnum = index["newest"]
@@ -46,8 +52,19 @@ class TekDownloader:
                 outfile = Path(self.outdir, "{}.zip".format(batch));
                 outf = open(outfile,"wb")
                 outf.write(response.read())
+                outf.close()
 
                 print("{} bytes read".format(outfile.stat().st_size))
+
+                outdir = Path(self.outdir, "{}".format(batch))
+                outdir.mkdir()
+
+                with ZipFile(outfile,"r") as zip:
+                    zip.extractall(outdir)
+
+                exported = Path(outdir, "export.bin")
+                print("File {0} extracted to export.bin ({1} bytes)".format(outfile, exported.stat().st_size))
+
 
 
         except error.URLError as e:
@@ -62,6 +79,7 @@ if __name__ == "__main__":
     parser.add_argument("--outdir", help="where to save files")
     parser.add_argument("--old", help="Progressive id of the oldest batch. Optional. If missing, download all from the oldest available")
     parser.add_argument("--new", help="Progressive id of the newest batch. Optional. If missing, download all up to the newest available ")
+    parser.add_argument("--index", default=False, action="store_true" ,help="Just pick index and exit")
     args = parser.parse_args()
 
     downloader = TekDownloader()
