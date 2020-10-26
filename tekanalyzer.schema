@@ -26,6 +26,7 @@ create table keys
 	start_timestamp int not null,
 	end_timestamp int not null,
 	report_type int,
+	risk_level int,
 	days int,
 	constraint keys_batches_batchnum_country_fk
 		foreign key (batch, country) references batches (batchid, country)

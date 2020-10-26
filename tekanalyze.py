@@ -68,19 +68,20 @@ class TekAnalyze:
                 onset_days = None
 
             if self.db:
-                self._import_key(tekExport, endts, key, keydata, onset_days, packid, report_type, startts)
+                self._import_key(tekExport, endts, key, keydata, onset_days, packid, key.transmission_risk_level,report_type, startts)
 
         if self.db:
             self.db.commit()
 
         return 0
 
-    def _import_key(self, tekExport, endts, key, keydata, onset_days, packid, report_type, startts):
+    def _import_key(self, tekExport, endts, key, keydata, onset_days, packid, risklevel, report_type, startts):
         curs = self.db.cursor()
-        sql = "INSERT OR REPLACE INTO keys(key, country, batch, start_rp, end_rp, start_timestamp, end_timestamp, report_type, days) " \
-              "VALUES (?,?,?,?,?,?,?,?,?)"
+        sql = "INSERT OR REPLACE INTO keys(key, country, batch, start_rp, end_rp, start_timestamp, end_timestamp, risk_level, report_type, days) " \
+              "VALUES (?,?,?,?,?,?,?,?,?,?)"
         curs.execute(sql, (keydata, tekExport.region, packid, key.rolling_start_interval_number, key.rolling_period,
-                           startts, endts, report_type, onset_days))
+                           startts, endts, risklevel,
+                           report_type, onset_days))
 
     def _import_batch(self, tekExport):
         curs = self.db.cursor()
