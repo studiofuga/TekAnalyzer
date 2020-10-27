@@ -2,10 +2,10 @@
 import sqlite3
 import sys
 import argparse
-import Exposure_Key_Format_pb2
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 import binascii
+from tek import tekparser, tekdb
 
 
 class TekImporter:
@@ -21,16 +21,9 @@ class TekImporter:
             self.parse_tek_file(self.args.tekfile)
 
     def parse_tek_file(self, filename):
-        f = open(filename, "rb")
-        text = f.read()
+        parser = tekparser.TekParser()
+        tekExport = parser.parse(filename)
 
-        signature = bytearray(text[0:12]).decode()
-        if signature != "EK Export v1":
-            print("Signature not found: {0}".format(signature))
-            return 2
-
-        tekExport = Exposure_Key_Format_pb2.TemporaryExposureKeyExport()
-        tekExport.ParseFromString(text[16:])
         print("Region: {0}".format(tekExport.region))
         print("Chunk/Batch number: {0}".format(self.args.batch))
         print("Batch Num: {0}".format(tekExport.batch_num))
@@ -45,55 +38,21 @@ class TekImporter:
                 exit(2)
 
             newfile = not Path(self.args.db).is_file()
-            self.db = sqlite3.connect(self.args.db)
+            self.db = tekdb.TekDatabase(self.args.db)
             if newfile:
-                with open("tekanalyzer.schema", mode="r") as file:
-                    ddl = file.read()
-                self.db.executescript(ddl)
+                print("Create db: {0}".format(self.args.db))
+                self.db.create()
 
-            packid = self._import_batch(tekExport)
+            batchid = self.db.importBatch(self.args.batch, tekExport)
 
         for key in tekExport.keys:
-            keydata = binascii.hexlify(key.key_data)
-            startts = datetime.fromtimestamp(key.rolling_start_interval_number * 10 * 60 )
-            endts = datetime.fromtimestamp((key.rolling_start_interval_number + key.rolling_period)* 10 * 60 )
-            if  hasattr(key,"report_type" ):
-                report_type = key.report_type
-            else:
-                report_type = None
-
-            if  hasattr(key,"days_since_onset_of_symptoms" ):
-                onset_days = key.days_since_onset_of_symptoms
-            else:
-                onset_days = None
-
             if self.db:
-                self._import_key(tekExport, endts, key, keydata, onset_days, packid, key.transmission_risk_level,report_type, startts)
+                self.db.importKey(key, tekExport, batchid)
 
         if self.db:
             self.db.commit()
 
         return 0
-
-    def _import_key(self, tekExport, endts, key, keydata, onset_days, packid, risklevel, report_type, startts):
-        curs = self.db.cursor()
-        sql = "INSERT OR REPLACE INTO keys(key, country, batch, start_rp, end_rp, start_timestamp, end_timestamp, risk_level, report_type, days) " \
-              "VALUES (?,?,?,?,?,?,?,?,?,?)"
-        curs.execute(sql, (keydata, tekExport.region, packid, key.rolling_start_interval_number, key.rolling_period,
-                           startts, endts, risklevel,
-                           report_type, onset_days))
-
-    def _import_batch(self, tekExport):
-        curs = self.db.cursor()
-        sql = "INSERT INTO batches(country, batchid, batchnum, batchsize, from_timestamp, to_timestamp, from_unix_timestamp, to_unix_timestamp) VALUES(?,?,?,?,?, ?,?,?)"
-        curs.execute(sql, (tekExport.region, self.args.batch, tekExport.batch_num, tekExport.batch_size,
-                            datetime.fromtimestamp(tekExport.start_timestamp),
-                            datetime.fromtimestamp(tekExport.end_timestamp),
-                           tekExport.start_timestamp, tekExport.end_timestamp))
-        packid = curs.lastrowid
-        self.db.commit()
-        return packid
-
 
 if __name__== "__main__":
     app = TekImporter(sys.argv)
