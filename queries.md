@@ -30,3 +30,13 @@ SELECT batchid,batches.from_timestamp,batches.to_timestamp, count(key) FROM batc
     left join keys k on batches.id = k.batch and batches.country = k.country
     GROUP BY batchid;
 ```
+
+### Find duplicate keys
+
+```sql
+SELECT rkey, k.batch, k.start_timestamp, k.end_timestamp, k.report_type, k.days from (
+    SELECT count(key) AS num,key as rkey from keys group by key)
+    left join keys k on k.key = rkey
+where num > 1;  
+```
+

@@ -8,7 +8,7 @@ from datetime import datetime
 import binascii
 
 
-class TekAnalyze:
+class TekImporter:
     def __init__(self, argv):
         parser = argparse.ArgumentParser()
         parser.add_argument("--tekfile", help="File to analyze (disables download)")
@@ -96,6 +96,6 @@ class TekAnalyze:
 
 
 if __name__== "__main__":
-    app = TekAnalyze(sys.argv)
+    app = TekImporter(sys.argv)
     exit(app.run())
 
