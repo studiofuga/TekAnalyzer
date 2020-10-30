@@ -46,10 +46,15 @@ class TekDownloader:
                 self.newnum = min (self.newnum, index["newest"])
 
             for batch in range(self.oldnum,self.newnum+1):
+                outfile = Path(self.outdir, "{}.zip".format(batch))
+                if outfile.exists():
+                    print("File {} exists, skipping.".format(outfile))
+                    continue
+
                 print("Reading Batch {}".format(batch))
                 req = request.Request(url='https://get.immuni.gov.it/v1/keys/{}'.format(batch), headers=reqHeaders)
                 response = request.urlopen(req)
-                outfile = Path(self.outdir, "{}.zip".format(batch));
+
                 outf = open(outfile,"wb")
                 outf.write(response.read())
                 outf.close()
