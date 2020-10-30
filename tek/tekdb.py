@@ -51,6 +51,14 @@ class TekDatabase:
                                startts, endts, key.transmission_risk_level,
                                report_type, onset_days))
 
+    def getImportedBatches(self, country: str) -> set:
+        sql = "SELECT batchid FROM main.batches WHERE country=?"
+        cur = self.db.cursor()
+        cur.execute(sql, (country,))
+        allrecords = cur.fetchall()
+
+        batches = {f[0] for f in allrecords}
+        return batches
 
     def commit(self):
         self.db.commit()
